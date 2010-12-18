@@ -34,6 +34,11 @@ class SqlSession < ActiveRecord::Base
   rescue ActiveRecord::StaleObjectError
     false
   end
+
+  def touch_session
+    self.class.update_all('updated_at = NOW()', :id => id) unless new_record?
+  end
+
   
   #find the session record by its primary key id as opposed to its session id
   def self.find_by_primary_id(primary_key_id, lock=false)

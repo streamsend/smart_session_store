@@ -22,7 +22,10 @@ module SessionSmarts
     changed_keys = []
     data.each {|k,v| changed_keys << k if Marshal.dump( original_data[k]) != Marshal.dump( v)}
     
-    return nil if changed_keys.empty? && deleted_keys.empty?
+    if changed_keys.empty? && deleted_keys.empty?
+      session.touch_session if session.updated_at < 5.minutes.ago
+      return nil
+    end
 
     if SqlSession.locking_enabled?
       begin

@@ -14,14 +14,14 @@ require 'sqlite3'
 # you will need to change the SQL statments in the code.
 
 class SqliteSession
-  attr_accessor :id, :session_id, :data, :lock_version
+  attr_accessor :id, :session_id, :data, :updated_at, :lock_version
 
   def initialize(session_id, data)
     @session_id = session_id
     @data = data
     @id = nil
+    @updated_at = Time.now
     @lock_version = 0
-    
   end
 
   class << self
@@ -59,14 +59,15 @@ class SqliteSession
     
     def find(conditions)
       connection = session_connection
-      result = query("SELECT session_id, data,id #{  SqlSession.locking_enabled? ? ',lock_version ' : ''} FROM sessions WHERE " + conditions)
+      result = query("SELECT session_id, data, id, updated_at #{  SqlSession.locking_enabled? ? ',lock_version ' : ''} FROM sessions WHERE " + conditions)
       my_session = nil
       # each is used below, as other methods barf on my 64bit linux machine
       # I suspect this to be a bug in mysql-ruby
       result.each do |row|
         my_session = new(row[0], row[1])
         my_session.id = row[2]
-        my_session.lock_version = row[3].to_i
+        my_session.updated_at = row[3]
+        my_session.lock_version = row[4].to_i
       end
             
       my_session
@@ -125,6 +126,10 @@ class SqliteSession
     else
       false
     end
+  end
+
+  def touch_session
+    self.class.session_connection.execute("UPDATE sessions SET updated_at = datetime('now') WHERE id = #{@id}") if @id
   end
   
   # destroy the current session

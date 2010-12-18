@@ -16,13 +16,14 @@ end
 
 class PostgresqlSession
 
-  attr_accessor :id, :session_id, :data, :lock_version
+  attr_accessor :id, :session_id, :data, :updated_at, :lock_version
 
   def initialize(session_id, data)
     @session_id = session_id
     @quoted_session_id = self.class.session_connection.quote(session_id)
     @data = data
     @id = nil
+    @updated_at = Time.now
     @lock_version = 0
   end
 
@@ -54,14 +55,15 @@ class PostgresqlSession
     
     def find(conditions)
       connection = session_connection
-      result = connection.query("SELECT session_id, data,id #{  SqlSession.locking_enabled? ? ',lock_version ' : ''} FROM sessions WHERE " + conditions)
+      result = connection.query("SELECT session_id, data, id, updated_at #{  SqlSession.locking_enabled? ? ',lock_version ' : ''} FROM sessions WHERE " + conditions)
       my_session = nil
       expected_columns = SqlSession.locking_enabled? ? 4 : 3
       
       if result[0] && result[0].size == expected_columns
        my_session = new(result[0][0], result[0][1])
         my_session.id = result[0][2]
-        my_session.lock_version = result[0][3].to_i
+        my_session.updated_at = Time.parse(result[0][3])
+        my_session.lock_version = result[0][4].to_i
       end
       result.clear
       my_session
@@ -123,6 +125,11 @@ class PostgresqlSession
       false
     end
   end
+
+  def touch_session
+    self.class.session_connection.connection.query("UPDATE sessions SET updated_at = NOW() WHERE id = #{@id}") if @id
+  end
+
   # destroy the current session
   def destroy
     self.class.delete_all("session_id=#{@quoted_session_id}")
