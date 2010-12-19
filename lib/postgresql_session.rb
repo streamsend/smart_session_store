@@ -23,7 +23,7 @@ class PostgresqlSession
     @quoted_session_id = self.class.session_connection.quote(session_id)
     @data = data
     @id = nil
-    @updated_at = Time.now
+    @updated_at = nil
     @lock_version = 0
   end
 

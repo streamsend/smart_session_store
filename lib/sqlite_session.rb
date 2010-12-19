@@ -20,7 +20,7 @@ class SqliteSession
     @session_id = session_id
     @data = data
     @id = nil
-    @updated_at = Time.now
+    @updated_at = nil
     @lock_version = 0
   end
 

@@ -23,7 +23,7 @@ module SessionSmarts
     data.each {|k,v| changed_keys << k if Marshal.dump( original_data[k]) != Marshal.dump( v)}
     
     if changed_keys.empty? && deleted_keys.empty?
-      session.touch_session if session.updated_at < 5.minutes.ago
+      session.touch_session if session.updated_at && session.updated_at < 5.minutes.ago
       return nil
     end
 
